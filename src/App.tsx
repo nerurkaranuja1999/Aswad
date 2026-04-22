@@ -12,7 +12,94 @@ import { initialProducts, initialBlogs, initialSiteConfig } from './data/mockDat
 
 // --- Components ---
 
-const Header = ({ config, onSearch }: { config: any, onSearch: (q: string) => void }) => {
+const InlineImageEdit = ({ 
+  currentImage, 
+  onUpdate, 
+  isAdmin 
+}: { 
+  currentImage: string, 
+  onUpdate: (url: string) => void, 
+  isAdmin: boolean 
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [newUrl, setNewUrl] = useState(currentImage);
+
+  if (!isAdmin) return null;
+
+  return (
+    <div className="absolute top-2 right-2 z-30">
+      <button 
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsEditing(true);
+        }}
+        className="p-2 bg-white/90 backdrop-blur shadow-lg rounded-full text-forest hover:text-terracotta transition-colors group"
+        title="Change Image"
+      >
+        <Edit2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+      </button>
+
+      <AnimatePresence>
+        {isEditing && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <div className="bg-white p-8 rounded-2xl w-full max-w-lg shadow-2xl space-y-6" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-serif font-bold text-forest">Change Image URL</h3>
+                <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
+                  <img src={newUrl || currentImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </div>
+                <input 
+                  type="text" 
+                  value={newUrl} 
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  className="w-full p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-terracotta outline-none text-sm"
+                  placeholder="Paste Unsplash or direct image URL..."
+                  autoFocus
+                />
+              </div>
+              <div className="flex space-x-3">
+                <button 
+                  onClick={() => {
+                    onUpdate(newUrl);
+                    setIsEditing(false);
+                  }}
+                  className="flex-1 bg-terracotta text-white py-3 rounded-lg font-bold hover:bg-forest transition-colors flex items-center justify-center"
+                >
+                  <Save className="w-4 h-4 mr-2" /> Update Image
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setNewUrl(currentImage); // Reset
+                  }}
+                  className="px-6 py-3 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400 text-center italic">
+                Note: Don't forget to click "Save All Changes" in Admin menu to persist across sessions.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const Header = ({ config, onSearch, isAdmin, setIsAdmin }: { config: any, onSearch: (q: string) => void, isAdmin: boolean, setIsAdmin: (val: boolean) => void }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +111,7 @@ const Header = ({ config, onSearch }: { config: any, onSearch: (q: string) => vo
     { name: 'Spices', path: '/spices', mega: true },
     { name: 'Blog', path: '/blog' },
     { name: 'Transparency', path: '/transparency' },
+    ...(isAdmin ? [{ name: 'Admin Dashboard', path: '/admin' }] : [])
   ];
 
   return (
@@ -67,17 +155,34 @@ const Header = ({ config, onSearch }: { config: any, onSearch: (q: string) => vo
             >
               <Search className="w-5 h-5" />
             </button>
-            <Link 
-              to="/admin" 
-              className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-gray-600 hover:bg-stone-200 transition-all"
-              aria-label="Admin Dashboard"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Admin</span>
-            </Link>
-            <Link to="/admin" className="sm:hidden p-2 text-gray-500 hover:text-terracotta transition-colors" aria-label="Admin Dashboard Mobile">
-              <Settings className="w-5 h-5" />
-            </Link>
+            {isAdmin ? (
+              <button 
+                onClick={() => {
+                  if (window.confirm('Log out from admin session?')) {
+                    setIsAdmin(false);
+                  }
+                }}
+                className="hidden sm:flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-full text-sm font-bold text-red-600 hover:bg-red-100 transition-all border border-red-100"
+                aria-label="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <>
+                <Link 
+                  to="/admin" 
+                  className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-gray-600 hover:bg-stone-200 transition-all"
+                  aria-label="Admin Dashboard"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Admin</span>
+                </Link>
+                <Link to="/admin" className="sm:hidden p-2 text-gray-500 hover:text-terracotta transition-colors" aria-label="Admin Dashboard Mobile">
+                  <Settings className="w-5 h-5" />
+                </Link>
+              </>
+            )}
             <button 
               className="md:hidden p-2 text-gray-500" 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -146,7 +251,7 @@ const Header = ({ config, onSearch }: { config: any, onSearch: (q: string) => vo
   );
 };
 
-const Footer = () => (
+const Footer = ({ isAdmin, setIsAdmin }: { isAdmin: boolean, setIsAdmin: (val: boolean) => void }) => (
   <footer className="bg-forest text-white pt-16 pb-8">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
@@ -158,6 +263,18 @@ const Footer = () => (
           <p className="text-gray-300 text-sm leading-relaxed">
             Authentic, naturally grown, homemade spices. Bringing the true essence of nature to your kitchen.
           </p>
+          {isAdmin ? (
+            <button 
+              onClick={() => setIsAdmin(false)}
+              className="text-[10px] text-red-300 mt-4 inline-block hover:text-red-100 transition-colors"
+            >
+              Logout Admin
+            </button>
+          ) : (
+            <Link to="/admin" className="text-[10px] text-white/20 mt-4 inline-block hover:text-white/50 transition-colors">
+              Admin Login
+            </Link>
+          )}
         </div>
         <div>
           <h4 className="font-serif text-lg mb-6 text-turmeric">Quick Links</h4>
@@ -192,10 +309,16 @@ const Footer = () => (
 
 const HomePage = ({ 
   config, 
-  products 
+  products,
+  isAdmin,
+  onUpdateConfig,
+  onUpdateProduct
 }: { 
   config: any, 
-  products: any[]
+  products: any[],
+  isAdmin: boolean,
+  onUpdateConfig: (config: any) => void,
+  onUpdateProduct: (product: any) => void
 }) => (
   <div className="space-y-24 pb-24">
     <SEO 
@@ -250,28 +373,72 @@ const HomePage = ({
             className="hidden lg:grid grid-cols-2 gap-4"
           >
             <div className="space-y-4 pt-12">
-              <img 
-                src={config.content.heroImages?.[0] || "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=400"} 
-                alt="Fresh Spices" 
-                className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
-              />
-              <img 
-                src={config.content.heroImages?.[1] || "https://images.unsplash.com/photo-1532336414038-cf19250c5757?auto=format&fit=crop&q=80&w=400"} 
-                alt="Spice Blend" 
-                className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
-              />
+              <div className="relative">
+                <img 
+                  src={config.content.heroImages?.[0] || "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=400"} 
+                  alt="Fresh Spices" 
+                  className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
+                />
+                <InlineImageEdit 
+                  isAdmin={isAdmin} 
+                  currentImage={config.content.heroImages?.[0]} 
+                  onUpdate={(url) => {
+                    const newImages = [...config.content.heroImages];
+                    newImages[0] = url;
+                    onUpdateConfig({ ...config, content: { ...config.content, heroImages: newImages } });
+                  }}
+                />
+              </div>
+              <div className="relative">
+                <img 
+                  src={config.content.heroImages?.[1] || "https://images.unsplash.com/photo-1532336414038-cf19250c5757?auto=format&fit=crop&q=80&w=400"} 
+                  alt="Spice Blend" 
+                  className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
+                />
+                <InlineImageEdit 
+                  isAdmin={isAdmin} 
+                  currentImage={config.content.heroImages?.[1]} 
+                  onUpdate={(url) => {
+                    const newImages = [...config.content.heroImages];
+                    newImages[1] = url;
+                    onUpdateConfig({ ...config, content: { ...config.content, heroImages: newImages } });
+                  }}
+                />
+              </div>
             </div>
             <div className="space-y-4">
-              <img 
-                src={config.content.heroImages?.[2] || "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&q=80&w=400"} 
-                alt="Malvani Spices" 
-                className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
-              />
-              <img 
-                src={config.content.heroImages?.[3] || "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=400"} 
-                alt="Maharashtrian Food" 
-                className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
-              />
+              <div className="relative">
+                <img 
+                  src={config.content.heroImages?.[2] || "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&q=80&w=400"} 
+                  alt="Malvani Spices" 
+                  className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
+                />
+                <InlineImageEdit 
+                  isAdmin={isAdmin} 
+                  currentImage={config.content.heroImages?.[2]} 
+                  onUpdate={(url) => {
+                    const newImages = [...config.content.heroImages];
+                    newImages[2] = url;
+                    onUpdateConfig({ ...config, content: { ...config.content, heroImages: newImages } });
+                  }}
+                />
+              </div>
+              <div className="relative">
+                <img 
+                  src={config.content.heroImages?.[3] || "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=400"} 
+                  alt="Maharashtrian Food" 
+                  className="rounded-2xl shadow-2xl border-4 border-white/10 aspect-[4/5] object-cover"
+                />
+                <InlineImageEdit 
+                  isAdmin={isAdmin} 
+                  currentImage={config.content.heroImages?.[3]} 
+                  onUpdate={(url) => {
+                    const newImages = [...config.content.heroImages];
+                    newImages[3] = url;
+                    onUpdateConfig({ ...config, content: { ...config.content, heroImages: newImages } });
+                  }}
+                />
+              </div>
             </div>
           </motion.div>
         </div>
@@ -293,22 +460,29 @@ const HomePage = ({
             transition={{ delay: idx * 0.1 }}
             className="group cursor-pointer card-premium"
           >
-            <Link to="/spices" className="block h-full">
-              <div className="relative aspect-square overflow-hidden">
-                <img 
-                  src={product.image} 
-                  alt={`${product.name} - Authentic Aswad Herbs Spice`} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                <div className="absolute bottom-6 left-6 right-6">
-                  <span className="text-xs font-bold text-turmeric uppercase tracking-widest mb-2 block">{product.category}</span>
-                  <h3 className="text-2xl font-serif font-bold text-white mb-2">{product.name}</h3>
-                  <p className="text-white/80 text-sm line-clamp-2">{product.description}</p>
+            <div className="relative h-full">
+              <Link to="/spices" className="block h-full">
+                <div className="relative aspect-square overflow-hidden">
+                  <img 
+                    src={product.image} 
+                    alt={`${product.name} - Authentic Aswad Herbs Spice`} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <span className="text-xs font-bold text-turmeric uppercase tracking-widest mb-2 block">{product.category}</span>
+                    <h3 className="text-2xl font-serif font-bold text-white mb-2">{product.name}</h3>
+                    <p className="text-white/80 text-sm line-clamp-2">{product.description}</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              <InlineImageEdit 
+                isAdmin={isAdmin} 
+                currentImage={product.image} 
+                onUpdate={(url) => onUpdateProduct({ ...product, image: url })} 
+              />
+            </div>
           </motion.div>
         ))}
       </div>
@@ -399,7 +573,7 @@ const HomePage = ({
   </div>
 );
 
-const AboutPage = ({ config }: { config: any }) => (
+const AboutPage = ({ config, isAdmin, onUpdateConfig }: { config: any, isAdmin: boolean, onUpdateConfig: (c: any) => void }) => (
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
     <SEO 
       title="Our Story" 
@@ -436,6 +610,11 @@ const AboutPage = ({ config }: { config: any }) => (
             referrerPolicy="no-referrer"
           />
         </div>
+        <InlineImageEdit 
+          isAdmin={isAdmin} 
+          currentImage={config.content.aboutImage} 
+          onUpdate={(url) => onUpdateConfig({ ...config, content: { ...config.content, aboutImage: url } })} 
+        />
         <div className="absolute -bottom-8 -left-8 bg-turmeric p-8 rounded-2xl shadow-xl hidden md:block max-w-xs">
           <p className="text-forest font-serif font-bold text-lg italic">"Flavor is the heart of every home, and purity is the soul of every flavor."</p>
         </div>
@@ -562,15 +741,18 @@ const AdminDashboard = ({
   config, setConfig, 
   products, setProducts, 
   blogs, setBlogs,
-  onSave
+  onSave,
+  isLoggedIn,
+  setIsLoggedIn
 }: { 
   config: any, setConfig: any, 
   products: any[], setProducts: any, 
   blogs: any[], setBlogs: any,
-  onSave: () => void
+  onSave: () => void,
+  isLoggedIn: boolean,
+  setIsLoggedIn: (val: boolean) => void
 }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'products' | 'blogs'>('content');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [editingBlog, setEditingBlog] = useState<any>(null);
@@ -1045,6 +1227,17 @@ export default function App() {
   const [products, setProducts] = useState(initialProducts);
   const [blogs, setBlogs] = useState(initialBlogs);
   const [filteredProducts, setFilteredProducts] = useState(initialProducts);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('aswadAdmin') === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('aswadAdmin', isLoggedIn ? 'true' : 'false');
+  }, [isLoggedIn]);
+
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const location = useLocation();
 
@@ -1105,7 +1298,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header config={config} onSearch={handleSearch} />
+      <Header config={config} onSearch={handleSearch} isAdmin={isLoggedIn} setIsAdmin={setIsLoggedIn} />
       
       <main className="flex-grow">
         <Routes>
@@ -1113,9 +1306,12 @@ export default function App() {
             <HomePage 
               config={config} 
               products={filteredProducts} 
+              isAdmin={isLoggedIn}
+              onUpdateConfig={setConfig}
+              onUpdateProduct={(update) => setProducts(products.map(p => p.id === update.id ? update : p))}
             />
           } />
-          <Route path="/about" element={<AboutPage config={config} />} />
+          <Route path="/about" element={<AboutPage config={config} isAdmin={isLoggedIn} onUpdateConfig={setConfig} />} />
           <Route path="/blog" element={<BlogPage blogs={blogs} />} />
           <Route path="/blog/:id" element={<BlogPostDetailPage blogs={blogs} />} />
           <Route path="/transparency" element={<TransparencyPage />} />
@@ -1127,6 +1323,8 @@ export default function App() {
                 products={products} setProducts={setProducts} 
                 blogs={blogs} setBlogs={setBlogs} 
                 onSave={handleSave}
+                isLoggedIn={isLoggedIn}
+                setIsLoggedIn={setIsLoggedIn}
               />
             </>
           } />
@@ -1139,33 +1337,36 @@ export default function App() {
               <h1 className="text-4xl font-serif font-bold text-forest mb-12">Our Spice Collection</h1>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {filteredProducts.map((product) => (
-                  <Link key={product.id} to="/" onClick={(e) => {
-                    // Prevent default to stay on same page or scroll to top if needed
-                    // But maybe redirect to home is better? 
-                    // Let's just make it a link to home for now as "website itself"
-                  }}>
-                    <div className="card-premium group h-full">
-                      <div className="aspect-square overflow-hidden">
-                        <img 
-                          src={product.image} 
-                          alt={`${product.name} - Aswad Herbs Premium Spice`} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                          referrerPolicy="no-referrer" 
-                        />
-                      </div>
-                      <div className="p-6">
-                        <span className="text-xs font-bold text-terracotta uppercase tracking-widest mb-2 block">{product.category}</span>
-                        <h3 className="text-xl font-serif font-bold text-forest mb-2">{product.name}</h3>
-                        <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-lg font-bold text-forest">₹{product.price}</span>
-                          <button className="p-2 bg-forest text-white rounded-full hover:bg-terracotta transition-colors shadow-md">
-                            <ShoppingBag className="w-5 h-5" />
-                          </button>
+                  <div key={product.id} className="relative group">
+                    <Link to="/" className="block h-full">
+                      <div className="card-premium group h-full">
+                        <div className="aspect-square overflow-hidden">
+                          <img 
+                            src={product.image} 
+                            alt={`${product.name} - Aswad Herbs Premium Spice`} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                            referrerPolicy="no-referrer" 
+                          />
+                        </div>
+                        <div className="p-6">
+                          <span className="text-xs font-bold text-terracotta uppercase tracking-widest mb-2 block">{product.category}</span>
+                          <h3 className="text-xl font-serif font-bold text-forest mb-2">{product.name}</h3>
+                          <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
+                          <div className="flex justify-between items-center">
+                            <span className="text-lg font-bold text-forest">₹{product.price}</span>
+                            <button className="p-2 bg-forest text-white rounded-full hover:bg-terracotta transition-colors shadow-md">
+                              <ShoppingBag className="w-5 h-5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    <InlineImageEdit 
+                      isAdmin={isLoggedIn} 
+                      currentImage={product.image} 
+                      onUpdate={(url) => setProducts(products.map(p => p.id === product.id ? { ...p, image: url } : p))} 
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -1173,7 +1374,23 @@ export default function App() {
         </Routes>
       </main>
 
-      <Footer />
+      <Footer isAdmin={isLoggedIn} setIsAdmin={setIsLoggedIn} />
+
+      {/* Global Save Button for Admins */}
+      {isLoggedIn && location.pathname !== '/admin' && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          onClick={handleSave}
+          className="fixed bottom-8 left-8 p-4 bg-terracotta text-white rounded-full shadow-2xl flex items-center justify-center group z-[90] hover:bg-forest transition-colors"
+          title="Save website changes"
+        >
+          <Save className="w-6 h-6 group-hover:scale-110 transition-transform" />
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap ml-0 group-hover:ml-2 font-bold text-sm">
+            Save All Changes
+          </span>
+        </motion.button>
+      )}
 
       {/* Toast Notification */}
       <AnimatePresence>
