@@ -71,7 +71,7 @@ const InlineImageEdit = ({
               </div>
               <div className="space-y-4">
                 <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
-                  <img src={newUrl || currentImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={newUrl || currentImage || undefined} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 </div>
                 <input 
                   type="text" 
@@ -177,7 +177,7 @@ const CartDrawer = ({
                 items.map((item) => (
                   <div key={item.id} className="flex space-x-4 animate-fade-in">
                     <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <img src={item.image || undefined} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-grow">
                       <div className="flex justify-between mb-1">
@@ -610,7 +610,7 @@ const HomePage = ({
           >
             <div className="relative aspect-square overflow-hidden">
               <img 
-                src={product.image} 
+                src={product.image || undefined} 
                 alt={`${product.name} - Authentic Aswad Herbs Spice`} 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 referrerPolicy="no-referrer"
@@ -805,7 +805,7 @@ const BlogPage = ({ blogs }: { blogs: any[] }) => (
         <article key={blog.id} className="group">
           <div className="aspect-video rounded-2xl overflow-hidden mb-6 shadow-md">
             <img 
-              src={blog.image} 
+              src={blog.image || undefined} 
               alt={`${blog.title} - Aswad Herbs Blog`} 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               referrerPolicy="no-referrer"
@@ -846,7 +846,7 @@ const BlogPostDetailPage = ({ blogs }: { blogs: any[] }) => {
       </Link>
       <article className="animate-fade-in">
         <img 
-          src={blog.image} 
+          src={blog.image || undefined} 
           alt={blog.title} 
           className="w-full aspect-video object-cover rounded-3xl shadow-xl mb-12" 
           referrerPolicy="no-referrer"
@@ -1262,7 +1262,7 @@ const AdminDashboard = ({
                     <tr key={product.id} className="group">
                       <td className="py-4">
                         <div className="flex items-center">
-                          <img src={product.image} className="w-10 h-10 rounded-md object-cover mr-4" />
+                          <img src={product.image || undefined} className="w-10 h-10 rounded-md object-cover mr-4" />
                           <span className="font-medium text-gray-700">{product.name}</span>
                         </div>
                       </td>
@@ -1369,7 +1369,7 @@ const AdminDashboard = ({
               {blogs.map((blog) => (
                 <div key={blog.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
                   <div className="flex items-center">
-                    <img src={blog.image} className="w-16 h-12 rounded-md object-cover mr-6" />
+                    <img src={blog.image || undefined} className="w-16 h-12 rounded-md object-cover mr-6" />
                     <div>
                       <h4 className="font-bold text-gray-700">{blog.title}</h4>
                       <p className="text-xs text-gray-400">{blog.date} • {blog.author}</p>
@@ -1670,7 +1670,7 @@ export default function App() {
                     <div className="card-premium group h-full">
                       <div className="aspect-square overflow-hidden relative">
                         <img 
-                          src={product.image} 
+                          src={product.image || undefined} 
                           alt={`${product.name} - Aswad Herbs Premium Spice`} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                           referrerPolicy="no-referrer" 
