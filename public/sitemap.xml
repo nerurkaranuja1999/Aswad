@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://aswadherbs.com/</loc>
+    <lastmod>2024-04-21</lastmod>
+    <priority>1.00</priority>
+  </url>
+  <url>
+    <loc>https://aswadherbs.com/about</loc>
+    <lastmod>2024-04-21</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://aswadherbs.com/spices</loc>
+    <lastmod>2024-04-21</lastmod>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://aswadherbs.com/blog</loc>
+    <lastmod>2024-04-21</lastmod>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://aswadherbs.com/transparency</loc>
+    <lastmod>2024-04-21</lastmod>
+    <priority>0.50</priority>
+  </url>
+</urlset>
