@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      // Trust the specific owner email for this development phase.
+      // We check for auth != null first to ensure we have a token.
+      return isSignedIn() && request.auth.token.email == 'nerurkaranuja1999@gmail.com';
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Product Validation ---
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'name', 'price', 'image']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.name is string && data.name.size() <= 200 &&
+             data.price is number && data.price >= 0 &&
+             data.image is string && data.image.size() <= 1024 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 20));
+    }
+
+    // --- Blog Validation ---
+    function isValidBlog(data) {
+      return data.keys().hasAll(['id', 'title', 'content', 'image']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.title is string && data.title.size() <= 300 &&
+             data.content is string && data.content.size() <= 50000 &&
+             data.image is string && data.image.size() <= 1024 &&
+             (!('excerpt' in data) || (data.excerpt is string && data.excerpt.size() <= 1000)) &&
+             (!('author' in data) || (data.author is string && data.author.size() <= 100)) &&
+             (!('date' in data) || (data.date is string && data.date.size() <= 64));
+    }
+
+    // --- Config Validation ---
+    function isValidConfig(data) {
+      return (!('theme' in data) || data.theme is map) &&
+             (!('content' in data) || data.content is map);
+    }
+
+    // --- Collections ---
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidProduct(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(blogId) && isValidBlog(incoming());
+      allow update: if isAdmin() && isValidBlog(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /config/site {
+      allow read: if true;
+      allow write: if isAdmin() && isValidConfig(incoming());
+    }
+  }
+}

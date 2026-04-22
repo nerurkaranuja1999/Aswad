@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Premium spice product details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "price", "image"]
+    },
+    "Blog": {
+      "title": "Blog Post",
+      "description": "Article or recipe blog post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "date": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "image"]
+    },
+    "SiteConfig": {
+      "title": "Site Configuration",
+      "description": "Theming and content settings for the website",
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "object",
+          "properties": {
+            "primary": { "type": "string" },
+            "secondary": { "type": "string" },
+            "accent": { "type": "string" },
+            "fontHeading": { "type": "string" },
+            "fontBody": { "type": "string" }
+          }
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "heroTitle": { "type": "string" },
+            "heroSubtitle": { "type": "string" },
+            "aboutStory": { "type": "string" },
+            "footerText": { "type": "string" },
+            "contactNumber": { "type": "string" },
+            "aboutImage": { "type": "string" },
+            "heroImages": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of spice products"
+    },
+    "blogs/{blogId}": {
+      "schema": "Blog",
+      "description": "Collection of blog posts"
+    },
+    "config/site": {
+      "schema": "SiteConfig",
+      "description": "Single document for all site-wide configuration"
+    }
+  }
+}

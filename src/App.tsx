@@ -5,11 +5,24 @@ import {
   Menu, X, Search, ShoppingBag, Instagram, Facebook, 
   ChevronDown, ArrowRight, Leaf, ShieldCheck, Clock, FileText, 
   Settings, LogOut, Plus, Edit2, Trash2, Save, Eye,
-  ShoppingCart, Minus, Trash
+  ShoppingCart, Minus, Trash, LogIn
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import SEO from './components/SEO';
 import { initialProducts, initialBlogs, initialSiteConfig } from './data/mockData';
+
+// Firebase Imports
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  collection, 
+  getDocs, 
+  writeBatch,
+  onSnapshot
+} from 'firebase/firestore';
+import { auth, db, loginWithGoogle, logout } from './lib/firebase';
 
 // --- Components ---
 
@@ -298,16 +311,30 @@ const Header = ({ config, onSearch, isAdmin, setIsAdmin, cartCount, onOpenCart }
                 </span>
               )}
             </button>
-            <Link 
-              to="/admin" 
-              className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-gray-600 hover:bg-stone-200 transition-all"
-              aria-label="Admin Dashboard"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Admin</span>
-            </Link>
+            {isAdmin ? (
+              <button 
+                onClick={() => {
+                  setIsAdmin(false);
+                  logout();
+                }}
+                className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-red-600 hover:bg-stone-200 transition-all"
+                aria-label="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <Link 
+                to="/admin" 
+                className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-gray-600 hover:bg-stone-200 transition-all"
+                aria-label="Admin Dashboard"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Admin</span>
+              </Link>
+            )}
             <Link to="/admin" className="sm:hidden p-2 text-gray-500 hover:text-terracotta transition-colors" aria-label="Admin Dashboard Mobile">
-              <Settings className="w-5 h-5" />
+              {isAdmin ? <LogOut className="w-5 h-5 text-red-500" onClick={(e) => { e.preventDefault(); setIsAdmin(false); logout(); }} /> : <Settings className="w-5 h-5" />}
             </Link>
             <button 
               className="md:hidden p-2 text-gray-500" 
@@ -883,27 +910,31 @@ const AdminDashboard = ({
   blogs, setBlogs,
   onSave,
   isLoggedIn,
-  setIsLoggedIn
+  setIsLoggedIn,
+  user
 }: { 
   config: any, setConfig: any, 
   products: any[], setProducts: any, 
   blogs: any[], setBlogs: any,
   onSave: () => void,
   isLoggedIn: boolean,
-  setIsLoggedIn: (val: boolean) => void
+  setIsLoggedIn: (val: boolean) => void,
+  user: User | null | undefined
 }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'products' | 'blogs'>('content');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [editingBlog, setEditingBlog] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin123') { // Simple demo password
+    if (password === 'aswadadmin123' || password === 'admin123') { 
       setIsLoggedIn(true);
+      setError('');
     } else {
-      alert('Incorrect password');
+      setError('Incorrect admin password. Please try again.');
     }
   };
 
@@ -969,25 +1000,64 @@ const AdminDashboard = ({
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <form onSubmit={handleLogin} className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 w-full max-w-md">
-          <h2 className="text-2xl font-serif font-bold text-forest mb-6 text-center">Admin Access</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+      <div className="min-h-[70vh] flex items-center justify-center bg-stone-50 px-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-stone-100"
+        >
+          <div className="w-16 h-16 bg-forest rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <Settings className="text-white w-8 h-8" />
+          </div>
+          <h2 className="text-3xl font-serif font-bold text-forest text-center mb-2">Secure Access</h2>
+          <p className="text-gray-400 text-center mb-8 text-sm uppercase tracking-widest font-medium">Administrator Portal</p>
+          
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Admin Password</label>
               <input 
                 type="password" 
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-md focus:ring-2 focus:ring-terracotta focus:border-transparent"
-                placeholder="Enter admin password"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError('');
+                }}
+                placeholder="••••••••"
+                className={cn(
+                  "w-full p-4 bg-stone-50 border rounded-xl focus:ring-2 focus:ring-terracotta outline-none transition-all",
+                  error ? "border-red-500 bg-red-50" : "border-stone-200"
+                )}
               />
+              {error && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{error}</p>}
             </div>
-            <button type="submit" className="w-full bg-terracotta text-white py-3 rounded-md font-bold hover:bg-red-800 transition-colors">
-              Login
+            <button type="submit" className="w-full bg-forest text-white py-4 rounded-xl font-bold hover:bg-terracotta transition-all shadow-lg hover:shadow-xl active:scale-95">
+              Enter Dashboard
             </button>
+          </form>
+
+          <div className="mt-8 pt-8 border-t border-stone-100">
+            <p className="text-xs text-gray-400 text-center mb-4 uppercase tracking-widest">Or verify via Google</p>
+            <button 
+              onClick={loginWithGoogle}
+              className="w-full bg-white border border-stone-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-stone-50 transition-all flex items-center justify-center shadow-sm"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" alt="Google" className="w-4 h-4 mr-3" />
+              Sign in with Google
+            </button>
+            {user === undefined ? (
+              <p className="mt-4 text-[10px] text-center text-gray-400 animate-pulse font-bold tracking-widest">Verifying Identity...</p>
+            ) : user && (
+              <p className="mt-4 text-[10px] text-center text-gray-400 flex flex-col items-center">
+                <span>Signed in as: <span className="font-bold text-forest">{user.email}</span></span>
+                {user.email === 'nerurkaranuja1999@gmail.com' ? (
+                  <span className="mt-1 text-green-500 font-bold uppercase tracking-tighter bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Owner Verified</span>
+                ) : (
+                  <span className="mt-1 text-red-400 font-bold uppercase tracking-tighter italic">External User - Restricted Access</span>
+                )}
+              </p>
+            )}
           </div>
-        </form>
+        </motion.div>
       </div>
     );
   }
@@ -1367,6 +1437,10 @@ export default function App() {
   const [products, setProducts] = useState(initialProducts);
   const [blogs, setBlogs] = useState(initialBlogs);
   const [filteredProducts, setFilteredProducts] = useState(initialProducts);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
+  
+  const isOwner = user?.email === 'nerurkaranuja1999@gmail.com';
+  
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('aswadAdmin') === 'true';
@@ -1383,6 +1457,47 @@ export default function App() {
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // --- Firebase Listeners ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (u?.email === 'nerurkaranuja1999@gmail.com') {
+        setIsLoggedIn(true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Firestore Sync
+  useEffect(() => {
+    const unsubConfig = onSnapshot(doc(db, 'config', 'site'), (docSnap) => {
+      if (docSnap.exists()) {
+        setConfig(docSnap.data() as any);
+      }
+    });
+
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const prods = snapshot.docs.map(d => ({ ...d.data() }));
+      if (prods.length > 0) {
+        setProducts(prods as any);
+        setFilteredProducts(prods as any);
+      }
+    });
+
+    const unsubBlogs = onSnapshot(collection(db, 'blogs'), (snapshot) => {
+      const blgs = snapshot.docs.map(d => ({ ...d.data() }));
+      if (blgs.length > 0) {
+        setBlogs(blgs as any);
+      }
+    });
+
+    return () => {
+      unsubConfig();
+      unsubProducts();
+      unsubBlogs();
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('aswadAdmin', isLoggedIn ? 'true' : 'false');
@@ -1428,42 +1543,65 @@ export default function App() {
     setFilteredProducts(products);
   }, [products]);
 
-  // --- Data Persistence ---
+  // Initial Data Migration (if Firestore is empty)
   useEffect(() => {
-    const fetchData = async () => {
+    const migrateData = async () => {
       try {
-        const response = await fetch('/api/data');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.config && Object.keys(data.config).length > 0) setConfig(data.config);
-          if (data.products && data.products.length > 0) {
-            setProducts(data.products);
-            setFilteredProducts(data.products);
-          }
-          if (data.blogs && data.blogs.length > 0) setBlogs(data.blogs);
+        const configSnap = await getDoc(doc(db, 'config', 'site'));
+        
+        // If config doesn't exist AND the current user is the owner, try to migrate
+        if (!configSnap.exists() && isOwner) {
+          console.log("Firestore is empty. Migrating local data...");
+          await setDoc(doc(db, 'config', 'site'), initialSiteConfig);
+          
+          const batch = writeBatch(db);
+          initialProducts.forEach(p => {
+            batch.set(doc(db, 'products', p.id), p);
+          });
+          initialBlogs.forEach(b => {
+            batch.set(doc(db, 'blogs', b.id), b);
+          });
+          await batch.commit();
         }
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+      } catch (err) {
+        // Only log error for the owner to avoid console noise for visitors
+        if (isOwner) {
+          console.error("Migration/Check failed:", err);
+          setToast({ message: "Initial sync failed. Please check internet connection.", type: 'error' });
+        }
       }
     };
-    fetchData();
-  }, []);
+    
+    // We only run the migration once we know the auth state
+    if (user !== undefined) {
+      migrateData();
+    }
+  }, [user, isOwner]);
 
   const handleSave = async () => {
+    if (!isLoggedIn && !isOwner) {
+      setToast({ message: "You must be logged in as admin to save.", type: 'error' });
+      return;
+    }
+
     try {
-      const response = await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config, products, blogs })
+      // Save to Firebase
+      await setDoc(doc(db, 'config', 'site'), config);
+      
+      const batch = writeBatch(db);
+      products.forEach(p => {
+        batch.set(doc(db, 'products', p.id), p);
       });
-      if (response.ok) {
-        setToast({ message: "Changes saved successfully!", type: 'success' });
-        setTimeout(() => setToast(null), 3000);
-      } else {
-        throw new Error("Failed to save");
-      }
+      blogs.forEach(b => {
+        batch.set(doc(db, 'blogs', b.id), b);
+      });
+      await batch.commit();
+
+      setToast({ message: "Changes synced across all devices!", type: 'success' });
+      setTimeout(() => setToast(null), 3000);
     } catch (error) {
-      setToast({ message: "Failed to save changes.", type: 'error' });
+      console.error("Firebase save error:", error);
+      setToast({ message: "Sync failed. Check permissions.", type: 'error' });
       setTimeout(() => setToast(null), 3000);
     }
   };
@@ -1515,6 +1653,7 @@ export default function App() {
                 onSave={handleSave}
                 isLoggedIn={isLoggedIn}
                 setIsLoggedIn={setIsLoggedIn}
+                user={user}
               />
             </>
           } />
