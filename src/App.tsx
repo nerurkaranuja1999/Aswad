@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation, useParams } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, X, Search, ShoppingBag, Instagram, Facebook, 
   ChevronDown, ArrowRight, Leaf, ShieldCheck, Clock, FileText, 
-  Settings, LogOut, Plus, Edit2, Trash2, Save
+  Settings, LogOut, Plus, Edit2, Trash2, Save, Eye
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import SEO from './components/SEO';
@@ -293,20 +293,22 @@ const HomePage = ({
             transition={{ delay: idx * 0.1 }}
             className="group cursor-pointer card-premium"
           >
-            <div className="relative aspect-square overflow-hidden">
-              <img 
-                src={product.image} 
-                alt={`${product.name} - Authentic Aswad Herbs Spice`} 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-              <div className="absolute bottom-6 left-6 right-6">
-                <span className="text-xs font-bold text-turmeric uppercase tracking-widest mb-2 block">{product.category}</span>
-                <h3 className="text-2xl font-serif font-bold text-white mb-2">{product.name}</h3>
-                <p className="text-white/80 text-sm line-clamp-2">{product.description}</p>
+            <Link to="/spices" className="block h-full">
+              <div className="relative aspect-square overflow-hidden">
+                <img 
+                  src={product.image} 
+                  alt={`${product.name} - Authentic Aswad Herbs Spice`} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <span className="text-xs font-bold text-turmeric uppercase tracking-widest mb-2 block">{product.category}</span>
+                  <h3 className="text-2xl font-serif font-bold text-white mb-2">{product.name}</h3>
+                  <p className="text-white/80 text-sm line-clamp-2">{product.description}</p>
+                </div>
               </div>
-            </div>
+            </Link>
           </motion.div>
         ))}
       </div>
@@ -428,7 +430,7 @@ const AboutPage = ({ config }: { config: any }) => (
       <div className="relative">
         <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
           <img 
-            src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=1200" 
+            src={config.content.aboutImage || "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=1200"} 
             alt="Traditional Spice Grinding Process at Aswad Herbs" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -731,6 +733,16 @@ const AdminDashboard = ({
                 />
               </div>
               <div className="col-span-full">
+                <label className="block text-sm font-bold text-gray-700 mb-2">About Page Image URL</label>
+                <input 
+                  type="text" 
+                  value={config.content.aboutImage}
+                  onChange={(e) => setConfig({ ...config, content: { ...config.content, aboutImage: e.target.value } })}
+                  className="w-full p-3 border border-gray-200 rounded-md mb-4"
+                  placeholder="https://images.unsplash.com/..."
+                />
+              </div>
+              <div className="col-span-full">
                 <label className="block text-sm font-bold text-gray-700 mb-4">Hero Section Images (4 URLs)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(config.content.heroImages || []).map((url: string, idx: number) => (
@@ -866,6 +878,9 @@ const AdminDashboard = ({
                       <td className="py-4 text-sm font-bold text-terracotta">₹{product.price}</td>
                       <td className="py-4 text-right">
                         <div className="flex justify-end space-x-2">
+                          <Link to="/spices" className="p-2 text-gray-400 hover:text-forest" title="View on Spices Page">
+                            <Eye className="w-4 h-4" />
+                          </Link>
                           <button 
                             onClick={() => setEditingProduct(product)}
                             className="p-2 text-gray-400 hover:text-forest"
@@ -969,6 +984,9 @@ const AdminDashboard = ({
                     </div>
                   </div>
                   <div className="flex space-x-2">
+                    <Link to={`/blog`} className="p-2 text-gray-400 hover:text-forest" title="View Blog">
+                      <Eye className="w-4 h-4" />
+                    </Link>
                     <button 
                       onClick={() => setEditingBlog(blog)}
                       className="p-2 text-gray-400 hover:text-forest"
@@ -988,17 +1006,31 @@ const AdminDashboard = ({
           </div>
         )}
 
-        <div className="mt-12 pt-8 border-t border-gray-100 flex justify-end">
+        <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
           <button 
             onClick={handleSaveAll}
             disabled={isSaving}
             className={cn(
-              "bg-terracotta text-white px-8 py-3 rounded-md font-bold flex items-center shadow-lg transition-all",
+              "flex-1 bg-terracotta text-white px-8 py-3 rounded-md font-bold flex items-center justify-center shadow-lg transition-all",
               isSaving ? "opacity-50 cursor-not-allowed" : "hover:bg-red-800"
             )}
           >
             <Save className="w-5 h-5 mr-2" /> 
             {isSaving ? "Saving..." : "Save All Changes"}
+          </button>
+          <button 
+            onClick={async () => {
+              await handleSaveAll();
+              window.location.href = '/';
+            }}
+            disabled={isSaving}
+            className={cn(
+              "flex-1 bg-forest text-white px-8 py-3 rounded-md font-bold flex items-center justify-center shadow-lg transition-all",
+              isSaving ? "opacity-50 cursor-not-allowed" : "hover:bg-green-800"
+            )}
+          >
+            <ArrowRight className="w-5 h-5 mr-2" /> 
+            {isSaving ? "Saving..." : "Save & View Site"}
           </button>
         </div>
       </div>
@@ -1107,27 +1139,33 @@ export default function App() {
               <h1 className="text-4xl font-serif font-bold text-forest mb-12">Our Spice Collection</h1>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {filteredProducts.map((product) => (
-                  <div key={product.id} className="card-premium group">
-                    <div className="aspect-square overflow-hidden">
-                      <img 
-                        src={product.image} 
-                        alt={`${product.name} - Aswad Herbs Premium Spice`} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                        referrerPolicy="no-referrer" 
-                      />
-                    </div>
-                    <div className="p-6">
-                      <span className="text-xs font-bold text-terracotta uppercase tracking-widest mb-2 block">{product.category}</span>
-                      <h3 className="text-xl font-serif font-bold text-forest mb-2">{product.name}</h3>
-                      <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold text-forest">₹{product.price}</span>
-                        <button className="p-2 bg-forest text-white rounded-full hover:bg-terracotta transition-colors shadow-md">
-                          <ShoppingBag className="w-5 h-5" />
-                        </button>
+                  <Link key={product.id} to="/" onClick={(e) => {
+                    // Prevent default to stay on same page or scroll to top if needed
+                    // But maybe redirect to home is better? 
+                    // Let's just make it a link to home for now as "website itself"
+                  }}>
+                    <div className="card-premium group h-full">
+                      <div className="aspect-square overflow-hidden">
+                        <img 
+                          src={product.image} 
+                          alt={`${product.name} - Aswad Herbs Premium Spice`} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          referrerPolicy="no-referrer" 
+                        />
+                      </div>
+                      <div className="p-6">
+                        <span className="text-xs font-bold text-terracotta uppercase tracking-widest mb-2 block">{product.category}</span>
+                        <h3 className="text-xl font-serif font-bold text-forest mb-2">{product.name}</h3>
+                        <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-bold text-forest">₹{product.price}</span>
+                          <button className="p-2 bg-forest text-white rounded-full hover:bg-terracotta transition-colors shadow-md">
+                            <ShoppingBag className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

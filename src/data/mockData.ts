@@ -210,6 +210,7 @@ export const initialSiteConfig = {
     aboutStory: 'Aswad Herbs started with a simple mission: to bring the purity of nature back to Indian kitchens. We source directly from natural farms and use traditional hand-pounding and stone-grinding methods to ensure you get the healthiest spices possible.',
     footerText: '© 2024 Aswad Herbs. All rights reserved.',
     contactNumber: '7499585453',
+    aboutImage: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=1200',
     heroImages: [
       'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=800',
       'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&q=80&w=800',
