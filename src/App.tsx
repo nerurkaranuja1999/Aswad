@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, X, Search, ShoppingBag, Instagram, Facebook, 
   ChevronDown, ArrowRight, Leaf, ShieldCheck, Clock, FileText, 
-  Settings, LogOut, Plus, Edit2, Trash2, Save, Eye
+  Settings, LogOut, Plus, Edit2, Trash2, Save, Eye,
+  ShoppingCart, Minus, Trash
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import SEO from './components/SEO';
@@ -99,7 +100,136 @@ const InlineImageEdit = ({
   );
 };
 
-const Header = ({ config, onSearch, isAdmin, setIsAdmin }: { config: any, onSearch: (q: string) => void, isAdmin: boolean, setIsAdmin: (val: boolean) => void }) => {
+const CartDrawer = ({ 
+  isOpen, 
+  onClose, 
+  items, 
+  onRemove, 
+  onUpdateQty 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  items: any[], 
+  onRemove: (id: string) => void,
+  onUpdateQty: (id: string, delta: number) => void
+}) => {
+  const total = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+          />
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-[101] shadow-2xl flex flex-col"
+          >
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-stone-50">
+              <div className="flex items-center space-x-2">
+                <ShoppingBag className="text-forest w-6 h-6" />
+                <h2 className="text-2xl font-serif font-bold text-forest">Your Spice Bag</h2>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors">
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="flex-grow overflow-y-auto p-6 space-y-6">
+              {items.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                  <div className="w-24 h-24 bg-stone-50 rounded-full flex items-center justify-center">
+                    <ShoppingBag className="w-12 h-12 text-gray-200" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif font-bold text-forest mb-2">Bag is empty</h3>
+                    <p className="text-gray-400 text-sm">Looks like you haven't added any spices yet.</p>
+                  </div>
+                  <button 
+                    onClick={onClose}
+                    className="btn-primary"
+                  >
+                    Shop Spices Now
+                  </button>
+                </div>
+              ) : (
+                items.map((item) => (
+                  <div key={item.id} className="flex space-x-4 animate-fade-in">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-grow">
+                      <div className="flex justify-between mb-1">
+                        <h4 className="font-serif font-bold text-forest uppercase text-sm tracking-tight">{item.name}</h4>
+                        <span className="font-bold text-terracotta">₹{item.price * item.quantity}</span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-3">{item.category}</p>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3 border border-stone-200 rounded-full px-3 py-1">
+                          <button 
+                            onClick={() => onUpdateQty(item.id, -1)}
+                            className="text-gray-400 hover:text-terracotta disabled:opacity-30"
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-sm font-bold text-forest min-w-[1rem] text-center">{item.quantity}</span>
+                          <button 
+                            onClick={() => onUpdateQty(item.id, 1)}
+                            className="text-gray-400 hover:text-forest"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <button 
+                          onClick={() => onRemove(item.id)}
+                          className="text-gray-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {items.length > 0 && (
+              <div className="p-6 bg-stone-50 border-t border-gray-100 space-y-4">
+                <div className="flex justify-between items-center text-lg">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="text-2xl font-serif font-bold text-forest">₹{total}</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <button className="w-full bg-forest text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-800 transition-all flex items-center justify-center group">
+                    Checkout Now <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={onClose}
+                    className="w-full bg-white text-gray-500 py-3 rounded-xl font-bold border border-gray-200 hover:bg-gray-50 transition-all flex items-center justify-center"
+                  >
+                    Shop More
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-400 text-center uppercase tracking-[0.2em]">Free delivery on orders above ₹500</p>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const Header = ({ config, onSearch, isAdmin, setIsAdmin, cartCount, onOpenCart }: { config: any, onSearch: (q: string) => void, isAdmin: boolean, setIsAdmin: (val: boolean) => void, cartCount: number, onOpenCart: () => void }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,6 +284,19 @@ const Header = ({ config, onSearch, isAdmin, setIsAdmin }: { config: any, onSear
               aria-label="Toggle Search"
             >
               <Search className="w-5 h-5" />
+            </button>
+            
+            <button 
+              onClick={onOpenCart}
+              className="relative p-2 text-gray-500 hover:text-terracotta transition-colors"
+              aria-label="Open Cart"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-terracotta text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce">
+                  {cartCount}
+                </span>
+              )}
             </button>
             <Link 
               to="/admin" 
@@ -288,13 +431,15 @@ const HomePage = ({
   products,
   isAdmin,
   onUpdateConfig,
-  onUpdateProduct
+  onUpdateProduct,
+  onAddToCart
 }: { 
   config: any, 
   products: any[],
   isAdmin: boolean,
   onUpdateConfig: (config: any) => void,
-  onUpdateProduct: (product: any) => void
+  onUpdateProduct: (product: any) => void,
+  onAddToCart: (p: any) => void
 }) => (
   <div className="space-y-24 pb-24">
     <SEO 
@@ -434,33 +579,52 @@ const HomePage = ({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="group cursor-pointer card-premium"
+            className="group cursor-pointer card-premium overflow-hidden"
           >
-            <div className="relative h-full">
-              <Link to="/spices" className="block h-full">
-                <div className="relative aspect-square overflow-hidden">
-                  <img 
-                    src={product.image} 
-                    alt={`${product.name} - Authentic Aswad Herbs Spice`} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <span className="text-xs font-bold text-turmeric uppercase tracking-widest mb-2 block">{product.category}</span>
-                    <h3 className="text-2xl font-serif font-bold text-white mb-2">{product.name}</h3>
-                    <p className="text-white/80 text-sm line-clamp-2">{product.description}</p>
-                  </div>
-                </div>
-              </Link>
-              <InlineImageEdit 
-                isAdmin={isAdmin} 
-                currentImage={product.image} 
-                onUpdate={(url) => onUpdateProduct({ ...product, image: url })} 
+            <div className="relative aspect-square overflow-hidden">
+              <img 
+                src={product.image} 
+                alt={`${product.name} - Authentic Aswad Herbs Spice`} 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                referrerPolicy="no-referrer"
               />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/50 transition-colors" />
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAddToCart(product);
+                }}
+                className="absolute top-4 right-4 p-3 bg-white text-forest rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-terracotta hover:text-white"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+              <div className="absolute bottom-6 left-6 right-6">
+                <span className="text-xs font-bold text-turmeric uppercase tracking-widest mb-2 block">{product.category}</span>
+                <h3 className="text-2xl font-serif font-bold text-white mb-2">{product.name}</h3>
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-2xl font-serif font-bold text-white">₹{product.price}</span>
+                  <Link to="/spices" className="text-white/80 hover:text-white text-xs uppercase tracking-widest font-bold border-b border-white/20 pb-1">Details</Link>
+                </div>
+              </div>
             </div>
+            <InlineImageEdit 
+              isAdmin={isAdmin} 
+              currentImage={product.image} 
+              onUpdate={(url) => onUpdateProduct({ ...product, image: url })} 
+            />
           </motion.div>
         ))}
+      </div>
+      <div className="mt-16 text-center">
+        <Link 
+          to="/spices" 
+          className="inline-flex items-center space-x-3 text-forest font-bold uppercase tracking-[0.2em] hover:text-terracotta transition-all group"
+        >
+          <span>Shop More Spices</span>
+          <div className="w-10 h-10 rounded-full bg-forest text-white flex items-center justify-center group-hover:bg-terracotta transition-colors">
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
       </div>
     </section>
 
@@ -1210,11 +1374,53 @@ export default function App() {
     return false;
   });
 
+  const [cart, setCart] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('aswadCart');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
   useEffect(() => {
     localStorage.setItem('aswadAdmin', isLoggedIn ? 'true' : 'false');
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    localStorage.setItem('aswadCart', JSON.stringify(cart));
+  }, [cart]);
+
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  const handleAddToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
+    setToast({ message: `${product.name} added to bag!`, type: 'success' });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateCartQty = (id: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const location = useLocation();
 
   // Sync filtered products when products change
@@ -1274,7 +1480,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header config={config} onSearch={handleSearch} isAdmin={isLoggedIn} setIsAdmin={setIsLoggedIn} />
+      <Header 
+        config={config} 
+        onSearch={handleSearch} 
+        isAdmin={isLoggedIn} 
+        setIsAdmin={setIsLoggedIn} 
+        cartCount={cartCount}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
       
       <main className="flex-grow">
         <Routes>
@@ -1285,6 +1498,7 @@ export default function App() {
               isAdmin={isLoggedIn}
               onUpdateConfig={setConfig}
               onUpdateProduct={(update) => setProducts(products.map(p => p.id === update.id ? update : p))}
+              onAddToCart={handleAddToCart}
             />
           } />
           <Route path="/about" element={<AboutPage config={config} isAdmin={isLoggedIn} onUpdateConfig={setConfig} />} />
@@ -1314,29 +1528,36 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {filteredProducts.map((product) => (
                   <div key={product.id} className="relative group">
-                    <Link to="/" className="block h-full">
-                      <div className="card-premium group h-full">
-                        <div className="aspect-square overflow-hidden">
-                          <img 
-                            src={product.image} 
-                            alt={`${product.name} - Aswad Herbs Premium Spice`} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                            referrerPolicy="no-referrer" 
-                          />
-                        </div>
-                        <div className="p-6">
-                          <span className="text-xs font-bold text-terracotta uppercase tracking-widest mb-2 block">{product.category}</span>
-                          <h3 className="text-xl font-serif font-bold text-forest mb-2">{product.name}</h3>
-                          <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
-                          <div className="flex justify-between items-center">
-                            <span className="text-lg font-bold text-forest">₹{product.price}</span>
-                            <button className="p-2 bg-forest text-white rounded-full hover:bg-terracotta transition-colors shadow-md">
-                              <ShoppingBag className="w-5 h-5" />
-                            </button>
-                          </div>
+                    <div className="card-premium group h-full">
+                      <div className="aspect-square overflow-hidden relative">
+                        <img 
+                          src={product.image} 
+                          alt={`${product.name} - Aswad Herbs Premium Spice`} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          referrerPolicy="no-referrer" 
+                        />
+                        <button 
+                          onClick={() => handleAddToCart(product)}
+                          className="absolute bottom-4 right-4 p-3 bg-white/90 backdrop-blur text-forest rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-terracotta hover:text-white"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <div className="p-6">
+                        <span className="text-xs font-bold text-terracotta uppercase tracking-widest mb-2 block">{product.category}</span>
+                        <h3 className="text-xl font-serif font-bold text-forest mb-2">{product.name}</h3>
+                        <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-bold text-forest">₹{product.price}</span>
+                          <button 
+                            onClick={() => handleAddToCart(product)}
+                            className="p-2 bg-stone-50 text-forest border border-stone-200 rounded-full hover:bg-terracotta hover:text-white transition-colors"
+                          >
+                            <ShoppingBag className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                     <InlineImageEdit 
                       isAdmin={isLoggedIn} 
                       currentImage={product.image} 
@@ -1351,6 +1572,14 @@ export default function App() {
       </main>
 
       <Footer isAdmin={isLoggedIn} setIsAdmin={setIsLoggedIn} />
+
+      <CartDrawer 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)}
+        items={cart}
+        onRemove={removeFromCart}
+        onUpdateQty={updateCartQty}
+      />
 
       {/* Global Save Button for Admins */}
       {isLoggedIn && location.pathname !== '/admin' && (
