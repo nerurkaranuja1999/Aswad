@@ -1036,13 +1036,18 @@ const AdminDashboard = ({
           </form>
 
           <div className="mt-8 pt-8 border-t border-stone-100">
-            <p className="text-xs text-gray-400 text-center mb-4 uppercase tracking-widest">Or verify via Google</p>
+            <p className="text-[10px] text-gray-500 text-center mb-4 uppercase tracking-[0.2em] font-bold">Verification Required for Saving</p>
             <button 
               onClick={loginWithGoogle}
-              className="w-full bg-white border border-stone-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-stone-50 transition-all flex items-center justify-center shadow-sm"
+              className={cn(
+                "w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center shadow-sm border",
+                user?.email === 'nerurkaranuja1999@gmail.com' 
+                  ? "bg-green-50 border-green-200 text-green-700" 
+                  : "bg-white border-stone-200 text-gray-700 hover:bg-stone-50"
+              )}
             >
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" alt="Google" className="w-4 h-4 mr-3" />
-              Sign in with Google
+              {user?.email === 'nerurkaranuja1999@gmail.com' ? "Owner Verified" : "Verify with Google"}
             </button>
             {user === undefined ? (
               <p className="mt-4 text-[10px] text-center text-gray-400 animate-pulse font-bold tracking-widest">Verifying Identity...</p>
@@ -1050,12 +1055,15 @@ const AdminDashboard = ({
               <p className="mt-4 text-[10px] text-center text-gray-400 flex flex-col items-center">
                 <span>Signed in as: <span className="font-bold text-forest">{user.email}</span></span>
                 {user.email === 'nerurkaranuja1999@gmail.com' ? (
-                  <span className="mt-1 text-green-500 font-bold uppercase tracking-tighter bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Owner Verified</span>
+                  <span className="mt-1 text-green-600 font-bold uppercase tracking-tighter bg-green-100 px-3 py-1 rounded-full border border-green-200">Database Access Enabled</span>
                 ) : (
-                  <span className="mt-1 text-red-400 font-bold uppercase tracking-tighter italic">External User - Restricted Access</span>
+                  <span className="mt-1 text-red-500 font-bold uppercase tracking-tighter italic bg-red-50 px-3 py-1 rounded-full border border-red-100">Access Restricted to Viewing Only</span>
                 )}
               </p>
             )}
+            <p className="mt-4 text-[9px] text-gray-400 text-center leading-relaxed">
+              Note: The admin password allows viewing the dashboard, but you must <strong>Verify with Google</strong> using your owner email to save changes back to the database.
+            </p>
           </div>
         </motion.div>
       </div>
@@ -1457,6 +1465,7 @@ export default function App() {
   });
 
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // --- Firebase Listeners ---
   useEffect(() => {
@@ -1471,6 +1480,10 @@ export default function App() {
 
   // Real-time Firestore Sync
   useEffect(() => {
+    // Only subscribe to live updates if we don't have unsaved local changes
+    // This prevents the UI from "reverting" while the user is editing.
+    if (hasUnsavedChanges) return;
+
     const unsubConfig = onSnapshot(doc(db, 'config', 'site'), (docSnap) => {
       if (docSnap.exists()) {
         setConfig(docSnap.data() as any);
@@ -1497,7 +1510,7 @@ export default function App() {
       unsubProducts();
       unsubBlogs();
     };
-  }, []);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     localStorage.setItem('aswadAdmin', isLoggedIn ? 'true' : 'false');
@@ -1579,12 +1592,19 @@ export default function App() {
   }, [user, isOwner]);
 
   const handleSave = async () => {
-    if (!isLoggedIn && !isOwner) {
-      setToast({ message: "You must be logged in as admin to save.", type: 'error' });
+    if (!user) {
+      setToast({ message: "Persistence Error: You MUST log in with Google to save changes permanently.", type: 'error' });
+      return;
+    }
+
+    if (!isOwner) {
+      setToast({ message: "Access Denied: Only the owner (nerurkaranuja1999@gmail.com) can save changes.", type: 'error' });
       return;
     }
 
     try {
+      setToast({ message: "Syncing changes with database...", type: 'success' });
+      
       // Save to Firebase
       await setDoc(doc(db, 'config', 'site'), config);
       
@@ -1597,12 +1617,17 @@ export default function App() {
       });
       await batch.commit();
 
-      setToast({ message: "Changes synced across all devices!", type: 'success' });
+      setHasUnsavedChanges(false);
+      setToast({ message: "All changes successfully saved and published!", type: 'success' });
       setTimeout(() => setToast(null), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Firebase save error:", error);
-      setToast({ message: "Sync failed. Check permissions.", type: 'error' });
-      setTimeout(() => setToast(null), 3000);
+      if (error.message?.includes('permission')) {
+        setToast({ message: "Saving failed: Insufficient permissions. Make sure you are the verified owner.", type: 'error' });
+      } else {
+        setToast({ message: "Database sync failed. Check your connection and try again.", type: 'error' });
+      }
+      setTimeout(() => setToast(null), 5000);
     }
   };
 
@@ -1634,12 +1659,15 @@ export default function App() {
               config={config} 
               products={filteredProducts} 
               isAdmin={isLoggedIn}
-              onUpdateConfig={setConfig}
-              onUpdateProduct={(update) => setProducts(products.map(p => p.id === update.id ? update : p))}
+              onUpdateConfig={(c) => { setConfig(c); setHasUnsavedChanges(true); }}
+              onUpdateProduct={(update) => {
+                setProducts(products.map(p => p.id === update.id ? update : p));
+                setHasUnsavedChanges(true);
+              }}
               onAddToCart={handleAddToCart}
             />
           } />
-          <Route path="/about" element={<AboutPage config={config} isAdmin={isLoggedIn} onUpdateConfig={setConfig} />} />
+          <Route path="/about" element={<AboutPage config={config} isAdmin={isLoggedIn} onUpdateConfig={(c) => { setConfig(c); setHasUnsavedChanges(true); }} />} />
           <Route path="/blog" element={<BlogPage blogs={blogs} />} />
           <Route path="/blog/:id" element={<BlogPostDetailPage blogs={blogs} />} />
           <Route path="/transparency" element={<TransparencyPage />} />
@@ -1647,9 +1675,9 @@ export default function App() {
             <>
               <SEO title="Admin Dashboard" description="Secure management portal for Aswad Herbs content and products." />
               <AdminDashboard 
-                config={config} setConfig={setConfig} 
-                products={products} setProducts={setProducts} 
-                blogs={blogs} setBlogs={setBlogs} 
+                config={config} setConfig={(c: any) => { setConfig(c); setHasUnsavedChanges(true); }} 
+                products={products} setProducts={(p: any) => { setProducts(p); setHasUnsavedChanges(true); }} 
+                blogs={blogs} setBlogs={(b: any) => { setBlogs(b); setHasUnsavedChanges(true); }} 
                 onSave={handleSave}
                 isLoggedIn={isLoggedIn}
                 setIsLoggedIn={setIsLoggedIn}
@@ -1721,17 +1749,18 @@ export default function App() {
       />
 
       {/* Global Save Button for Admins */}
-      {isLoggedIn && location.pathname !== '/admin' && (
+      {(isLoggedIn || isOwner) && hasUnsavedChanges && location.pathname !== '/admin' && (
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           onClick={handleSave}
-          className="fixed bottom-8 left-8 p-4 bg-terracotta text-white rounded-full shadow-2xl flex items-center justify-center group z-[90] hover:bg-forest transition-colors"
+          className="fixed bottom-8 left-8 p-4 bg-terracotta text-white rounded-full shadow-2xl flex items-center justify-center group z-[90] hover:bg-forest transition-colors ring-4 ring-white"
           title="Save website changes"
         >
+          <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white" />
           <Save className="w-6 h-6 group-hover:scale-110 transition-transform" />
           <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap ml-0 group-hover:ml-2 font-bold text-sm">
-            Save All Changes
+            Publish Changes Now
           </span>
         </motion.button>
       )}
