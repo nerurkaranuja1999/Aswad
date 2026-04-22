@@ -155,34 +155,17 @@ const Header = ({ config, onSearch, isAdmin, setIsAdmin }: { config: any, onSear
             >
               <Search className="w-5 h-5" />
             </button>
-            {isAdmin ? (
-              <button 
-                onClick={() => {
-                  if (window.confirm('Log out from admin session?')) {
-                    setIsAdmin(false);
-                  }
-                }}
-                className="hidden sm:flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-full text-sm font-bold text-red-600 hover:bg-red-100 transition-all border border-red-100"
-                aria-label="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </button>
-            ) : (
-              <>
-                <Link 
-                  to="/admin" 
-                  className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-gray-600 hover:bg-stone-200 transition-all"
-                  aria-label="Admin Dashboard"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>Admin</span>
-                </Link>
-                <Link to="/admin" className="sm:hidden p-2 text-gray-500 hover:text-terracotta transition-colors" aria-label="Admin Dashboard Mobile">
-                  <Settings className="w-5 h-5" />
-                </Link>
-              </>
-            )}
+            <Link 
+              to="/admin" 
+              className="hidden sm:flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-full text-sm font-bold text-gray-600 hover:bg-stone-200 transition-all"
+              aria-label="Admin Dashboard"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Admin</span>
+            </Link>
+            <Link to="/admin" className="sm:hidden p-2 text-gray-500 hover:text-terracotta transition-colors" aria-label="Admin Dashboard Mobile">
+              <Settings className="w-5 h-5" />
+            </Link>
             <button 
               className="md:hidden p-2 text-gray-500" 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -263,14 +246,7 @@ const Footer = ({ isAdmin, setIsAdmin }: { isAdmin: boolean, setIsAdmin: (val: b
           <p className="text-gray-300 text-sm leading-relaxed">
             Authentic, naturally grown, homemade spices. Bringing the true essence of nature to your kitchen.
           </p>
-          {isAdmin ? (
-            <button 
-              onClick={() => setIsAdmin(false)}
-              className="text-[10px] text-red-300 mt-4 inline-block hover:text-red-100 transition-colors"
-            >
-              Logout Admin
-            </button>
-          ) : (
+          {!isAdmin && (
             <Link to="/admin" className="text-[10px] text-white/20 mt-4 inline-block hover:text-white/50 transition-colors">
               Admin Login
             </Link>
